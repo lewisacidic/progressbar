@@ -3,7 +3,7 @@ import uuid
 from IPython.display import HTML, Javascript, display_html, display_javascript
 import sys
 
-class ProgressBar:
+class ProgressBar_ascii:
     """Loading bar class based on ASCII figures"""
     def __init__(self, iterations = 100, progress = 0, width = 50):
         self.iterations = iterations
@@ -42,7 +42,7 @@ class ProgressBar:
     def __repr__(self):
         return str(self)
 
-class ProgressBarRich:
+class ProgressBar_html:
     """Loading bar class with Rich HTML5 and Javascript support"""
     def __init__(self, iterations = 100, progress = 0):
         self.iterations = iterations
@@ -78,13 +78,16 @@ class ProgIter:
     Iterator implementing a progress bar. Supply a size of your iterable with size
      if known to avoid having to iterate through anyway.
      """
-    def __init__(self, iterable, progress_bar = None, size = None):
+    def __init__(self, iterable, progress_bar = None, size = None, rich = False):
         if size is None:
             self.size = len(iterable)
         else:
             self.size = size
         if progress_bar is None:
-            self.pbar = ProgressBar(100)
+            if rich:
+                self.pbar = ProgressBar_html(100)
+            else:
+                self.pbar = ProgressBar_ascii(100)
         else:
             self.pbar = progress_bar
 
