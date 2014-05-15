@@ -7,4 +7,6 @@ Two progress bars are provided, hopefully at some point when it becomes more cle
 
 HTML5 `progress` object is inserted to the notebook and manipulated with Javascript.
 
-A class that wraps the interable, `ProgIter` is provided.
+A class that wraps an iterable, `ProgIter` is provided.
+
+
