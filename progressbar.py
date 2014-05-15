@@ -3,26 +3,48 @@ import uuid
 from IPython.display import HTML, Javascript, display_html, display_javascript
 import sys
 
-class ProgressBar_ascii:
-    """Loading bar class based on ASCII figures"""
-    def __init__(self, iterations = 100, progress = 0, width = 50):
+class ProgressBar(object):
+    """Abstract class to be subclassed"""
+    def __init__(self, iterations=100, progress=0, **kwargs):
         self.iterations = iterations
         self.progress = progress
-        self.bar_id = str(uuid.uuid4())
-        self.width = width
-        self.__update_prog_bar()
-        
-    def animate(self, added_progress = 1):
+        self._initialize()
+
+    def animate(self, added_progress=1):
         self.progress += added_progress
-        if self.progress == self.iterations: 
-            self.remove()
+        if self.progress >= self.iterations:
+            self._remove()
         else:
-            self.__update_prog_bar()
-            print('\r', self, end='')
-            sys.stdout.flush()
-        
+            self._update()
+
+    def _update(self):
+        """Updates the progress bar - overload this"""
+        pass
+
+    def _initialize(self):
+        """Initializes the progress bar - overload this"""
+        pass
+
+    def _remove(self):
+        """removes the progressbar from view -overload this"""
+        pass
+
+    def __repr__(self):
+        """Print progress"""
+        return '{progress}/{iterations}'.format(**self.__dict__)
+
+
+class ProgressBarASCII(ProgressBar):
+    """Loading bar class based on ASCII characters"""
+    def __init__(self, width=50, **kwargs):
+
+        self.width = width
+        super(ProgressBarASCII, self).__init__(**kwargs)
     
-    def __update_prog_bar(self):
+    def _initialize(self):
+        self._update()
+    
+    def _update(self):
         self._percent = int(round((float(self.progress) / self.iterations) * 100.0))
         all_full = self.width - 2
         num_hashes = int(round((self._percent / 100.0) * all_full))
@@ -31,8 +53,10 @@ class ProgressBar_ascii:
         pct_string = '%d%%' % self._percent
         self.prog_bar = self.prog_bar[0:pct_place] + \
             (pct_string + self.prog_bar[pct_place + len(pct_string):])
+        print('\r', self, end='')
+        sys.stdout.flush()
 
-    def remove(self):
+    def _remove(self):
         print('\r', end='')
         sys.stdout.flush()
 
@@ -42,52 +66,56 @@ class ProgressBar_ascii:
     def __repr__(self):
         return str(self)
 
-class ProgressBar_html:
-    """Loading bar class with Rich HTML5 and Javascript support"""
-    def __init__(self, iterations = 100, progress = 0):
-        self.iterations = iterations
-        self.progress = progress
+
+
+class ProgressBarHTML(ProgressBar):
+    """Loading bar class with HTML5 and Javascript support"""
+    def __init__(self, **kwargs):
+        super(ProgressBarHTML, self).__init__(**kwargs)
+    
+    def _initialize(self):
         self.bar_id = str(uuid.uuid4())
         self.HTML = HTML(
-        """
-                <progress 
-                    value="{progress}"
-                    max="{iterations}" 
-                    id="{id}">
-                </progress>        
-        """.format(progress = self.progress, 
-                   id = self.bar_id, 
-                   iterations = self.iterations))
+                         """
+                             <progress
+                             value="{progress}"
+                             max="{iterations}"
+                             id="{id}">
+                             </progress>
+                             """.format(progress = self.progress,
+                                        id = self.bar_id,
+                                        iterations = self.iterations))
         display_html(self.HTML)
+        self._update()
 
-    def animate(self, added_progress = 1):
-        self.progress += added_progress
-        if self.progress == self.iterations: 
-            self.remove()
-        else:
-            display_javascript(Javascript("$('progress#{id}').val('{progress}')".format(id = self.bar_id, progress = self.progress)))
+    def _update(self):
+        display_javascript(Javascript("$('progress#{id}').val('{progress}')"\
+                    .format(id = self.bar_id, progress = self.progress)))
         
-    def remove(self):
-        display_javascript(Javascript("""var elem = document.getElementById('{id}'); elem.parentNode.removeChild(elem);""".format(id = self.bar_id)))
+    def _remove(self):
+        display_javascript(Javascript(
+        """var elem = document.getElementById('{id}'); elem.parentNode.removeChild(elem);""".format(id = self.bar_id)))
 
     def __str__(self):
         return str(self.progress)
+
+
 
 class ProgIter:
     """
     Iterator implementing a progress bar. Supply a size of your iterable with size
      if known to avoid having to iterate through anyway.
      """
-    def __init__(self, iterable, progress_bar = None, size = None, rich = False):
+    def __init__(self, iterable, progress_bar=None, size=None, rich=False):
         if size is None:
             self.size = len(iterable)
         else:
             self.size = size
         if progress_bar is None:
             if rich:
-                self.pbar = ProgressBar_html(100)
+                self.pbar = ProgressBarHTML(iterations=100)
             else:
-                self.pbar = ProgressBar_ascii(100)
+                self.pbar = ProgressBarASCII(iterations=100)
         else:
             self.pbar = progress_bar
 
